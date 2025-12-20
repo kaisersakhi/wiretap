@@ -343,3 +343,15 @@ Type: :supervisor
 23:53:03.782 [debug] handled request client -> server textDocument/codeAction in 784µs
 23:53:03.812 [debug] sent notification server -> client window/logMessage
 23:53:03.812 [debug] handled request client -> server textDocument/codeLens in 306µs
+23:53:12.850 [debug] handled notification client -> server $/cancelRequest in 170µs
+23:53:13.118 [debug] sent notification server -> client window/logMessage
+23:53:13.118 [debug] handled request client -> server textDocument/codeAction in 587µs
+23:53:13.134 [debug] handled notification client -> server $/cancelRequest in 218µs
+23:53:13.169 [debug] sent notification server -> client window/logMessage
+23:53:13.169 [debug] handled request client -> server textDocument/codeLens in 309µs
+23:53:20.024 [debug] handled notification client -> server $/cancelRequest in 86µs
+23:53:20.293 [debug] sent notification server -> client window/logMessage
+23:53:20.293 [debug] handled request client -> server textDocument/codeAction in 1ms
+23:53:20.301 [debug] handled notification client -> server $/cancelRequest in 149µs
+23:53:20.327 [debug] sent notification server -> client window/logMessage
+23:53:20.327 [debug] handled request client -> server textDocument/codeLens in 215µs
