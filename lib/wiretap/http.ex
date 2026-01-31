@@ -6,13 +6,13 @@ defmodule Wiretap.Http do
     |> response
   end
 
-  def parse(request) do
+  def parse(_request) do
   end
 
-  def route(con) do
+  def route(_con) do
   end
 
-  def response(conn) do
+  def response(_conn) do
   end
 end
 

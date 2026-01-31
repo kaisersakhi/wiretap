@@ -1,21 +1,38 @@
 # Wiretap
 
-**TODO: Add description**
+**Work In Progress**
 
-## Installation
+Wiretap is a minimal TCP/HTTP server implementation in Elixir (Educational).
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `wiretap` to your list of dependencies in `mix.exs`:
+## Architecture (Minimal)
 
-```elixir
-def deps do
-  [
-    {:wiretap, "~> 0.1.0"}
-  ]
-end
+The application follows a standard OTP supervision tree structure:
+
+```mermaid
+graph TD
+    A[Wiretap.Application] -->|Starts| B(Wiretap.Supervisor)
+    B -->|Supervises| C{Wiretap.TCPListener}
+    C -->|Spawns| D[Task: Client Handler]
+    C -->|Spawns| E[Task: Client Handler]
+    D -.->|Uses| F[Wiretap.Http]
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/wiretap>.
+- **Wiretap.Application**: The entry point ensuring the system starts.
+- **Wiretap.Supervisor**: Supervises the TCP Listener.
+- **Wiretap.TCPListener**: Listens on port `4010`. Accepts connections and spawns a specific `Task` for each client to ensure concurrency.
+- **Wiretap.Http**: (WIP) Module responsible for parsing raw binary data into HTTP requests and formatting responses.
 
+## Todo
+
+- [ ] **HTTP Parsing**
+    - [ ] Parse Request Line (Method, Target, Version)
+    - [ ] Parse Headers
+    - [ ] Parse Body
+- [ ] **Routing**
+    - [ ] Simple route matching mechanism
+- [ ] **Response Handling**
+    - [ ] valid HTTP/1.1 response generation
+- [ ] **Concurrency & Robustness**
+    - [ ] Refine Task supervision (Task.Supervisor?)
+- [ ] **Configuration**
+    - [ ] Make port configurable
