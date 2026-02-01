@@ -41,7 +41,7 @@ defmodule Wiretap.Parser do
     case String.split(parser.buffer, "\r\n\r\n", parts: 2) do
       [headers_str, _body_str] ->
         headers = parse_headers_str(headers_str)
-        %{parser | headers: headers, state: :body, content_length: headers["content-length"]}
+        %{parser | headers: headers, state: :body, content_length: headers["content-length"] |> String.to_integer()}
 
       [_incomplete] ->
         parser
@@ -74,19 +74,35 @@ defmodule Wiretap.Parser do
 
   defp parse_body(%__MODULE__{state: :body} = parser) do
     body = parser.buffer |> String.split("\r\n\r\n", parts: 2) |> List.last()
+    body_size = byte_size(body)
+    body(parser, body, body_size)
+  end
 
-    if byte_size(body) == parser.content_length |> String.to_integer() do
-      request = %Wiretap.Request{
-        method: parser.headers["method"],
-        path: parser.headers["path"],
-        version: parser.headers["http_version"],
-        headers: parser.headers,
-        body: body
-      }
+  defp body(%__MODULE__{state: :body, content_length: content_length} = parser, body, body_size) when body_size == content_length do
+    request = prepare_request(parser, body)
 
-      {:done, request, "", %{parser | state: :done}}
-    else
-      parser
-    end
+    {:done, request, "", %{parser | state: :done}}
+  end
+
+  defp body(%__MODULE__{state: :body, content_length: content_length} = parser, _body, body_size) when body_size < content_length do
+    {:more, parser}
+  end
+
+  defp body(%__MODULE__{state: :body, content_length: content_length} = parser, body, body_size) when body_size > content_length do
+    <<body::binary-size(content_length), rest::binary>> = body
+
+    request = prepare_request(parser, body)
+
+    {:done, request, rest, %{parser | state: :done}}
+  end
+
+  defp prepare_request(parser, body) do
+    %Wiretap.Request{
+      method: parser.headers["method"],
+      path: parser.headers["path"],
+      version: parser.headers["http_version"],
+      headers: parser.headers,
+      body: body
+    }
   end
 end

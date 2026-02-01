@@ -52,7 +52,7 @@ defmodule Wiretap.ParserTest do
         "user-agent" => "Elixir",
         "content-length" => "0"
       }
-      assert parser.content_length == "0"
+      assert parser.content_length == 0
       assert parser.state == :body
     end
   end
@@ -73,5 +73,81 @@ defmodule Wiretap.ParserTest do
   end
 
 
+  describe "when body is larger than content-length" do
+    test "parses body and returns the rest" do
+      parser = Parser.new()
+      parser = Parser.feed(parser, "GET / HTTP/1.1\r\nHost: example.com\r\n")
+      parser = Parser.feed(parser, "User-Agent: Elixir\r\n")
+      parser = Parser.feed(parser, "Content-Len")
+      parser = Parser.feed(parser, "gth: 13\r\n")
+      parser = Parser.feed(parser, "\r\n")
+      {:done, request, rest, parser} = Parser.feed(parser, "Hello, World!Extra")
 
+      IO.puts(request.body)
+
+      assert parser.headers == %{
+        "host" => "example.com",
+        "method" => "GET",
+        "path" => "/",
+        "http_version" => "HTTP/1.1",
+        "user-agent" => "Elixir",
+        "content-length" => "13"
+      }
+
+      assert request.body == "Hello, World!"
+      assert rest == "Extra"
+      assert parser.state == :done
+    end
+  end
+
+  describe "when body is smaller than content-length" do
+    test "buffers the body and waits for more data" do
+      parser = Parser.new()
+      parser = Parser.feed(parser, "GET / HTTP/1.1\r\nHost: example.com\r\n")
+      parser = Parser.feed(parser, "User-Agent: Elixir\r\n")
+      parser = Parser.feed(parser, "Content-Len")
+      parser = Parser.feed(parser, "gth: 13\r\n")
+      parser = Parser.feed(parser, "\r\n")
+
+      {:more, parser} = Parser.feed(parser, "Hello, Worl") # Only 11 bytes, not 13
+
+      assert parser.headers == %{
+        "host" => "example.com",
+        "method" => "GET",
+        "path" => "/",
+        "http_version" => "HTTP/1.1",
+        "user-agent" => "Elixir",
+        "content-length" => "13"
+      }
+
+      # assert request.body == "Hello, World!"
+      # assert rest == "Extra"
+      assert parser.state == :body
+    end
+  end
+
+  describe "when body contains unicode characters" do
+    test "parses body and returns the rest" do
+      body = "Hello, Wörld! 😅"
+      parser = Parser.new()
+      parser = Parser.feed(parser, "GET / HTTP/1.1\r\nHost: example.com\r\n")
+      parser = Parser.feed(parser, "User-Agent: Elixir\r\n")
+      parser = Parser.feed(parser, "Content-Len")
+      parser = Parser.feed(parser, "gth: #{byte_size(body)}\r\n")
+      parser = Parser.feed(parser, "\r\n")
+      {:done, request, rest, parser} = Parser.feed(parser, body)
+
+      assert parser.headers == %{
+        "host" => "example.com",
+        "method" => "GET",
+        "path" => "/",
+        "http_version" => "HTTP/1.1",
+        "user-agent" => "Elixir",
+        "content-length" => to_string(byte_size(body))
+      }
+
+      assert request.body == body
+      assert parser.state == :done
+    end
+  end
 end
