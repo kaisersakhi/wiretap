@@ -24,24 +24,31 @@ defmodule Wiretap.Parser do
     %__MODULE__{}
   end
 
-  @spec feed(t(), binary()) :: t()
   def feed(%__MODULE__{} = parser, data) do
     parser = %{parser | buffer: parser.buffer <> data}
-
-    parser = case parser.state do
-      :headers -> parse_headers(parser)
-      :body -> parse_body(parser)
-      _ -> parser
-    end
-
-    parser
+    process(parser)
   end
+
+  defp process(%{state: :headers} = parser) do
+    new_parser = parse_headers(parser)
+    if new_parser.state == :body do
+      process(new_parser)
+    else
+      {:more, new_parser}
+    end
+  end
+
+  defp process(%{state: :body} = parser) do
+    parse_body(parser)
+  end
+
+  defp process(parser), do: {:more, parser}
 
   defp parse_headers(%__MODULE__{state: :headers} = parser) do
     case String.split(parser.buffer, "\r\n\r\n", parts: 2) do
       [headers_str, _body_str] ->
         headers = parse_headers_str(headers_str)
-        %{parser | headers: headers, state: :body, content_length: headers["content-length"] |> String.to_integer()}
+        %{parser | headers: headers, state: :body, content_length: headers |> Map.get("content-length", "0") |> String.to_integer()}
 
       [_incomplete] ->
         parser

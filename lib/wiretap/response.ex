@@ -1,5 +1,5 @@
 defmodule Wiretap.Response do
-  defstruct [:status, :headers, :body]
+  defstruct [:status, :body, headers: []]
 
   def to_string(%__MODULE__{status: status, headers: headers, body: body}) do
     [build_status_line(status), build_headers(headers), build_body(body)]

@@ -77,7 +77,7 @@ defmodule Wiretap.TCPListener do
       # Process if there is a complete request
       {:done, request, rest, parser} ->
         response = handle_request(request)
-        :gen_tcp.send(socket, response)
+        :gen_tcp.send(socket, Response.to_string(response))
 
         if rest == "" do
           # No more data in the buffer, continue to receive more data

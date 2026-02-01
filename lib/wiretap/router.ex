@@ -11,7 +11,7 @@ defmodule Wiretap.Router do
     %{router | routes: routes ++ [new_route]}
   end
 
-  def dispatch(%Wiretap.Request{method: method, path: path} = request) do
+  def dispatch(%Request{method: method, path: path} = request) do
     # TODO: Implement router
     routes = []
     case Enum.find(routes, fn {m, p, _} -> m == method and p == path end) do
