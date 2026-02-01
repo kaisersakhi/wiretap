@@ -3,6 +3,9 @@ defmodule Wiretap.TCPListener do
 
   use GenServer
 
+  alias Wiretap.Response
+  alias Wiretap.Parser
+
   def start_link(port) do
     GenServer.start_link(__MODULE__, port, name: __MODULE__)
   end
@@ -51,7 +54,45 @@ defmodule Wiretap.TCPListener do
   end
 
   def handle_client(socket) do
-    :gen_tcp.send(socket, "Hello\r\n")
-    :gen_tcp.close(socket)
+    parser = Wiretap.Parser.new()
+    recv_loop(socket, parser)
+  end
+
+  defp recv_loop(socket, parser) do
+    # recv() takes socket and length of data to read.
+    # 0 means read all available data.
+    case :gen_tcp.recv(socket, 0) do
+      {:ok, data} ->
+        process_data(socket, parser, data)
+
+      {:error, :closed} ->
+        :gen_tcp.close(socket)
+    end
+  end
+
+  defp process_data(socket, parser, data) do
+    case parser |> Parser.feed(data) do
+      # Process if there is more in the buffer
+      {:more, parser} -> recv_loop(socket, parser)
+      # Process if there is a complete request
+      {:done, request, rest, parser} ->
+        response = handle_request(request)
+        :gen_tcp.send(socket, response)
+
+        if rest == "" do
+          # No more data in the buffer, continue to receive more data
+          recv_loop(socket, parser)
+        else
+          # Process the rest of the data, rest is the remaining data in the buffer that we over read
+          process_data(socket, parser, rest)
+        end
+    end
+  end
+
+  defp handle_request(_request) do
+    %Response{
+      status: 200,
+      body: "Hello, World!"
+    }
   end
 end
